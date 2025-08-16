@@ -1,0 +1,35 @@
+{
+  "name": "crypto-automation",
+  "version": "1.0.0",
+  "description": "Cloudflare Worker for automated crypto market and news analysis",
+  "main": "worker.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "deploy:staging": "wrangler deploy --env staging",
+    "deploy:production": "wrangler deploy --env production",
+    "test": "node test.js",
+    "test:local": "WORKER_URL=http://localhost:8787 node test.js",
+    "setup": "npm install && echo 'Please set your secrets using wrangler secret put'"
+  },
+  "keywords": [
+    "cloudflare",
+    "worker",
+    "crypto",
+    "trading",
+    "analysis",
+    "telegram",
+    "binance",
+    "newsapi"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241127.0",
+    "typescript": "^5.3.3",
+    "wrangler": "^3.22.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
