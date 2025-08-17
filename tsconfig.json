@@ -10,11 +10,12 @@
     "forceConsistentCasingInFileNames": true,
     "declaration": true,
     "outDir": "dist",
-    "rootDir": ".",
-    "types": ["@cloudflare/workers-types"]
+    "rootDir": "src",
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true
   },
   "include": [
-    "worker.ts"
+    "src/**/*"
   ],
   "exclude": [
     "node_modules",

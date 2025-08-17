@@ -1,180 +1,214 @@
-# Crypto Automation Cloudflare Worker
+# Crypto Automation Worker
 
-A comprehensive Cloudflare Worker that automatically analyzes cryptocurrency markets and news every 8 hours, providing trading insights via Telegram.
+A Cloudflare Worker that provides automated crypto market analysis and trading recommendations via Telegram using KuCoin API.
 
-## Features
+## 🏗️ Project Structure
 
-- **Automated Execution**: Runs every 8 hours via cron trigger
-- **Multi-Crypto Analysis**: Analyzes BTC, ETH, SOL, XRP, TRX, XLM, ADA, DOT, BNB
-- **Technical Analysis**: Fetches OHLCV data from Binance (15m, 1h, 1d timeframes)
-- **News Sentiment**: Analyzes crypto news from NewsAPI
-- **AI-Powered Insights**: Uses OpenAI for sentiment analysis and trading recommendations
-- **Telegram Delivery**: Sends formatted HTML reports to Telegram channels
-- **Error Handling**: Continues processing if individual coins fail
-- **Manual Triggers**: `/run` endpoint for manual execution
-- **Health Checks**: `/health` endpoint for monitoring
+The project has been refactored into a clean, modular structure:
 
-## Setup
+```
+src/
+├── types/           # TypeScript interfaces and types
+│   └── index.ts
+├── config/          # Configuration constants
+│   └── constants.ts
+├── utils/           # Utility functions
+│   ├── logger.ts    # Logging utilities
+│   ├── http.ts      # HTTP utilities with circuit breaker
+│   └── helpers.ts   # General helper functions
+├── services/        # External service integrations
+│   ├── crypto-candles.ts # KuCoin API service
+│   ├── news.ts      # News API service
+│   ├── gemini.ts    # Gemini AI service
+│   └── telegram.ts  # Telegram bot service
+├── controllers/     # Business logic controllers
+│   ├── analysis.ts  # Main analysis workflow
+│   └── api.ts       # HTTP API endpoints
+└── worker.ts        # Main worker entry point
+```
 
-### 1. Install Dependencies
+## 🚀 Features
+
+- **KuCoin API Integration**: Reliable crypto data from KuCoin exchange
+- **AI-Powered Analysis**: Google Gemini AI for market sentiment and trading recommendations
+- **News Sentiment Analysis**: Real-time crypto news analysis
+- **Telegram Delivery**: Automated trading reports via Telegram
+- **Modular Architecture**: Clean separation of concerns
+- **Error Handling**: Robust error handling with proper logging
+- **Type Safety**: Full TypeScript support
+- **Scheduled Execution**: Runs every 4 hours via Cloudflare cron
+
+## 📋 Prerequisites
+
+- Node.js 18+ 
+- Cloudflare account
+- API keys for:
+  - Google Gemini AI
+  - TheNewsAPI
+  - Telegram Bot
+
+## 🛠️ Setup
+
+1. **Install dependencies**:
+   ```bash
+   npm install
+   ```
+
+2. **Set up environment variables**:
+   ```bash
+   # Set your API keys as secrets
+   wrangler secret put GEMINI_API_KEY
+   wrangler secret put THENEWSAPI_KEY
+   wrangler secret put TELEGRAM_BOT_TOKEN
+   wrangler secret put TELEGRAM_CHAT_ID
+   ```
+
+3. **Configure optional settings**:
+   ```bash
+   # Optional: Set custom symbols to analyze
+   wrangler secret put SYMBOLS
+   # Example: BTC,ETH,SOL,XRP,ADA
+   
+   # Optional: Set log level
+   wrangler secret put LOG_LEVEL
+   # Options: debug, info, warn, error
+   ```
+
+## 🏃‍♂️ Development
 
 ```bash
-npm install
+# Start development server
+npm run dev
+
+# Build the project
+npm run build
+
+# Clean build artifacts
+npm run clean
+
+# Test KuCoin API
+npm test
 ```
 
-### 2. Configure Environment Variables
+## 🚀 Deployment
 
-Set the following secrets using Wrangler:
-
+### **Development**
 ```bash
-# Gemini API (for sentiment analysis and trading insights)
-wrangler secret put GEMINI_API_KEY
-
-# NewsAPI (for crypto news)
-wrangler secret put NEWSAPI_KEY
-
-# Telegram Bot (for message delivery)
-wrangler secret put TELEGRAM_BOT_TOKEN
-wrangler secret put TELEGRAM_CHAT_ID
+npm run dev                  # Local development
 ```
 
-### 3. Optional Configuration
-
-You can also set these optional environment variables:
-
+### **Production**
 ```bash
-# Custom models (defaults to gemini-1.5-flash)
-wrangler secret put GEMINI_MODEL_SENTIMENT
-wrangler secret put GEMINI_MODEL_AGENT
+npm run deploy               # Deploy to production
 ```
 
-# Custom symbols (defaults to BTC,ETH,SOL,XRP,TRX,XLM,ADA,DOT,BNB)
-wrangler secret put SYMBOLS
-
-# Max articles to analyze (defaults to 25)
-wrangler secret put MAX_ARTICLES
-
-# Log level (debug|info|warn|error, defaults to info)
-wrangler secret put LOG_LEVEL
-```
-
-### 4. Deploy
-
+### **Deployment Script**
 ```bash
-# Deploy to production
-npm run deploy:production
-
-# Or deploy to staging first
-npm run deploy:staging
+./deploy.sh                  # Automated deployment with checks
 ```
 
-## API Endpoints
+## 📡 API Endpoints
 
-### Health Check
-```bash
-curl https://your-worker.your-subdomain.workers.dev/health
-```
+- `GET /health` - Health check
+- `POST /test-telegram` - Test Telegram bot
+- `POST /run` - Manually trigger analysis
 
-### Manual Execution
-```bash
-curl -X POST https://your-worker.your-subdomain.workers.dev/run
-```
+## ⏰ Scheduled Execution
 
-## Configuration Details
+The worker runs automatically every 4 hours via Cloudflare's cron triggers.
 
-### Supported Cryptocurrencies
-- BTC (Bitcoin)
-- ETH (Ethereum)
-- SOL (Solana)
-- XRP (Ripple)
-- TRX (TRON)
-- XLM (Stellar)
-- ADA (Cardano)
-- DOT (Polkadot)
-- BNB (Binance Coin)
+## 🔧 Configuration
 
-### Timeframes
-- 15-minute (15m) - Short-term analysis
-- 1-hour (1h) - Medium-term analysis
-- 1-day (1d) - Long-term analysis
+### Environment Variables
 
-### News Analysis
-- **Source**: NewsAPI
-- **Keywords**: "Crypto OR Bitcoin OR Coindesk"
-- **Timeframe**: Last 3 days
-- **Articles**: ~25 articles (configurable)
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `GEMINI_API_KEY` | ✅ | - | Google Gemini API key |
+| `THENEWSAPI_KEY` | ✅ | - | TheNewsAPI key |
+| `TELEGRAM_BOT_TOKEN` | ✅ | - | Telegram bot token |
+| `TELEGRAM_CHAT_ID` | ✅ | - | Telegram chat/channel ID |
+| `SYMBOLS` | ❌ | BTC,ETH,SOL,XRP,TRX,XLM,ADA,DOT,BNB | Comma-separated list of crypto symbols |
+| `LOG_LEVEL` | ❌ | info | Logging level (debug, info, warn, error) |
+| `MAX_ARTICLES` | ❌ | 25 | Maximum news articles to analyze |
 
-### AI Analysis Output
+### Default Symbols
 
-#### Sentiment Analysis (JSON)
+The worker analyzes these cryptocurrencies by default:
+- Bitcoin (BTC)
+- Ethereum (ETH)
+- Solana (SOL)
+- Ripple (XRP)
+- TRON (TRX)
+- Stellar (XLM)
+- Cardano (ADA)
+- Polkadot (DOT)
+- Binance Coin (BNB)
+
+## 🔍 How It Works
+
+### 1. Data Collection
+- **KuCoin API**: Fetches real-time price data for all configured cryptocurrencies
+- **News API**: Collects recent crypto-related news articles
+- **Timeframes**: Analyzes 15m, 1h, and 1d candlestick data
+
+### 2. AI Analysis
+- **Sentiment Analysis**: AI analyzes news for market sentiment
+- **Technical Analysis**: AI processes price data and generates trading recommendations
+- **Risk Management**: Provides entry, stop-loss, and take-profit levels
+
+### 3. Output Delivery
+- **Telegram Reports**: Sends formatted trading recommendations
+- **Multiple Recommendations**: Both spot and leveraged trading advice
+- **Detailed Analysis**: Technical indicators, sentiment, and rationale
+
+## 🏗️ Architecture Benefits
+
+### 1. **Reliability**
+- Single, reliable data source (KuCoin API)
+- No fallback complexity or mock data
+- Clear error handling and logging
+
+### 2. **Maintainability**
+- Clean, modular code structure
+- Type-safe TypeScript implementation
+- Clear separation of concerns
+
+### 3. **Performance**
+- Optimized for Cloudflare Workers
+- Efficient API usage with rate limiting
+- Minimal dependencies
+
+### 4. **Scalability**
+- Easy to add new cryptocurrencies
+- Configurable analysis parameters
+- Extensible architecture
+
+## 🔍 Monitoring
+
+The worker provides structured JSON logging with:
+- Timestamp
+- Log level
+- Service identifier
+- Contextual data
+
+Example log entry:
 ```json
 {
-  "shortTermSentiment": {
-    "category": "Positive|Neutral|Negative",
-    "score": -1.0 to 1.0,
-    "rationale": "Detailed explanation"
-  },
-  "longTermSentiment": {
-    "category": "Positive|Neutral|Negative", 
-    "score": -1.0 to 1.0,
-    "rationale": "Detailed explanation"
-  }
+  "ts": "2024-01-01T12:00:00.000Z",
+  "level": "info",
+  "service": "crypto-worker",
+  "message": "Successfully fetched from KuCoin",
+  "data": { "symbol": "BTCUSDT", "timeframe": "1h", "count": 5 }
 }
 ```
 
-#### Trading Analysis (HTML)
-- Spot trading recommendations (buy/sell/hold)
-- Leveraged trading recommendations (long/short)
-- Entry prices, stop-loss, take-profit levels
-- Detailed rationale with technical indicators
+## 🤝 Contributing
 
-## Development
+1. Follow the existing modular structure
+2. Add proper TypeScript types for new features
+3. Include error handling and logging
+4. Update documentation for new endpoints or configuration
 
-### Local Development
-```bash
-npm run dev
-```
+## 📄 License
 
-### Testing
-```bash
-# Test health endpoint
-curl http://localhost:8787/health
-
-# Test manual run
-curl -X POST http://localhost:8787/run
-```
-
-## Monitoring
-
-The worker includes comprehensive logging with:
-- Unique trace IDs for each execution
-- Structured JSON logs
-- Error tracking per cryptocurrency
-- Performance metrics
-
-## Rate Limits & Considerations
-
-- **Binance API**: 120ms delay between requests
-- **NewsAPI**: 3 retry attempts with exponential backoff
-- **OpenAI**: 800ms delay between requests
-- **Telegram**: 250ms delay between messages
-- **Message Splitting**: Automatic for messages >3900 characters
-
-## Troubleshooting
-
-### Common Issues
-
-1. **OpenAI API Errors**: Check your API key and quota
-2. **NewsAPI Errors**: Verify your API key and subscription
-3. **Telegram Errors**: Ensure bot token and chat ID are correct
-4. **Rate Limiting**: The worker includes built-in delays to respect API limits
-
-### Logs
-Check Cloudflare Workers logs in the dashboard or use:
-```bash
-wrangler tail
-```
-
-## License
-
-MIT License
+MIT License - see LICENSE file for details.
