@@ -1,10 +1,10 @@
 # Crypto Automation Worker
 
-A Cloudflare Worker that provides automated crypto market analysis and trading recommendations via Telegram using KuCoin API.
+A Cloudflare Worker that provides automated crypto market analysis and trading recommendations via Telegram using KuCoin API and Google Gemini AI.
 
 ## 🏗️ Project Structure
 
-The project has been refactored into a clean, modular structure:
+The project follows a clean, modular architecture:
 
 ```
 src/
@@ -14,12 +14,12 @@ src/
 │   └── constants.ts
 ├── utils/           # Utility functions
 │   ├── logger.ts    # Logging utilities
-│   ├── http.ts      # HTTP utilities with circuit breaker
+│   ├── http.ts      # HTTP utilities with retry logic
 │   └── helpers.ts   # General helper functions
 ├── services/        # External service integrations
 │   ├── crypto-candles.ts # KuCoin API service
-│   ├── news.ts      # News API service
-│   ├── gemini.ts    # Gemini AI service
+│   ├── news.ts      # TheNewsAPI service
+│   ├── gemini.ts    # Google Gemini AI service
 │   └── telegram.ts  # Telegram bot service
 ├── controllers/     # Business logic controllers
 │   ├── analysis.ts  # Main analysis workflow
@@ -29,14 +29,14 @@ src/
 
 ## 🚀 Features
 
-- **KuCoin API Integration**: Reliable crypto data from KuCoin exchange
-- **AI-Powered Analysis**: Google Gemini AI for market sentiment and trading recommendations
-- **News Sentiment Analysis**: Real-time crypto news analysis
-- **Telegram Delivery**: Automated trading reports via Telegram
-- **Modular Architecture**: Clean separation of concerns
-- **Error Handling**: Robust error handling with proper logging
-- **Type Safety**: Full TypeScript support
-- **Scheduled Execution**: Runs every 4 hours via Cloudflare cron
+- **KuCoin API Integration**: Single data source for reliable crypto market data
+- **AI-Powered Analysis**: Google Gemini 2.5 Flash for sentiment and trading analysis
+- **News Sentiment Analysis**: Real-time crypto news analysis via TheNewsAPI
+- **Telegram Delivery**: Automated trading reports with error notifications
+- **Error Handling**: Comprehensive error handling with Telegram notifications
+- **Type Safety**: Full TypeScript support with strict typing
+- **Scheduled Execution**: Runs every 4 hours via Cloudflare cron triggers
+- **Rate Limiting**: Polite API usage with configurable delays
 
 ## 📋 Prerequisites
 
@@ -94,12 +94,6 @@ npm run dev
 
 # Build the project
 npm run build
-
-# Clean build artifacts
-npm run clean
-
-# Test KuCoin API
-npm test
 ```
 
 ## 🚀 Deployment
@@ -121,13 +115,14 @@ npm run deploy               # Deploy to production
 
 ## 📡 API Endpoints
 
+- `GET /` - Project info and available endpoints
 - `GET /health` - Health check
 - `POST /test-telegram` - Test Telegram bot
 - `POST /run` - Manually trigger analysis
 
 ## ⏰ Scheduled Execution
 
-The worker runs automatically every 4 hours via Cloudflare's cron triggers.
+The worker runs automatically every 4 hours via Cloudflare's cron triggers (`0 */4 * * *`).
 
 ## 🔧 Configuration
 
@@ -150,6 +145,17 @@ The configuration is managed through `wrangler.toml` and Cloudflare secrets:
 | `LOG_LEVEL` | info | Logging level (debug, info, warn, error) |
 | `MAX_ARTICLES` | 25 | Maximum news articles to analyze |
 
+#### **Advanced Configuration** (optional environment variables)
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `GEMINI_MODEL_SENTIMENT` | gemini-2.5-flash | AI model for sentiment analysis |
+| `GEMINI_MODEL_AGENT` | gemini-2.5-flash | AI model for trading analysis |
+| `ENABLE_CIRCUIT_BREAKER` | true | Enable HTTP circuit breaker |
+| `MAX_CONCURRENT_REQUESTS` | 3 | Maximum concurrent API requests |
+| `REQUEST_TIMEOUT_MS` | 30000 | HTTP request timeout |
+| `ENABLE_CACHE` | true | Enable response caching |
+| `CACHE_TTL_SECONDS` | 300 | Cache TTL in seconds |
+
 ### Default Symbols
 
 The worker analyzes these cryptocurrencies by default:
@@ -163,22 +169,29 @@ The worker analyzes these cryptocurrencies by default:
 - Polkadot (DOT)
 - Binance Coin (BNB)
 
+### Timeframes
+
+The system analyzes multiple timeframes:
+- **15m** - Short-term analysis
+- **1h** - Medium-term analysis  
+- **1d** - Long-term analysis
+
 ## 🔍 How It Works
 
 ### 1. Data Collection
-- **KuCoin API**: Fetches real-time price data for all configured cryptocurrencies
-- **News API**: Collects recent crypto-related news articles
-- **Timeframes**: Analyzes 15m, 1h, and 1d candlestick data
+- **KuCoin API**: Fetches real-time candlestick data for all configured cryptocurrencies
+- **TheNewsAPI**: Collects recent crypto-related news articles with intelligent filtering
+- **Timeframes**: Analyzes 15m, 1h, and 1d candlestick data (last 5 candles per timeframe)
 
 ### 2. AI Analysis
-- **Sentiment Analysis**: AI analyzes news for market sentiment
+- **Sentiment Analysis**: AI analyzes news for market sentiment (short-term and long-term)
 - **Technical Analysis**: AI processes price data and generates trading recommendations
 - **Risk Management**: Provides entry, stop-loss, and take-profit levels
 
 ### 3. Output Delivery
 - **Telegram Reports**: Sends formatted trading recommendations
-- **Multiple Recommendations**: Both spot and leveraged trading advice
-- **Detailed Analysis**: Technical indicators, sentiment, and rationale
+- **Error Notifications**: Real-time error alerts via Telegram
+- **Summary Reports**: Analysis completion summaries
 
 ## 🏗️ Architecture Benefits
 
@@ -186,21 +199,25 @@ The worker analyzes these cryptocurrencies by default:
 - Single, reliable data source (KuCoin API)
 - No fallback complexity or mock data
 - Clear error handling and logging
+- Comprehensive error notifications
 
 ### 2. **Maintainability**
 - Clean, modular code structure
 - Type-safe TypeScript implementation
 - Clear separation of concerns
+- Simplified data formats
 
 ### 3. **Performance**
 - Optimized for Cloudflare Workers
-- Efficient API usage with rate limiting
+- Efficient API usage with rate limiting (100ms delays)
 - Minimal dependencies
+- Polite API usage patterns
 
 ### 4. **Scalability**
 - Easy to add new cryptocurrencies
 - Configurable analysis parameters
 - Extensible architecture
+- Sequential processing to stay within rate limits
 
 ## 🔍 Monitoring
 
@@ -220,6 +237,43 @@ Example log entry:
   "data": { "symbol": "BTCUSDT", "timeframe": "1h", "count": 5 }
 }
 ```
+
+## 🚨 Error Handling
+
+The system provides comprehensive error handling:
+
+### **Error Types**
+- **News API Error** - TheNewsAPI failures
+- **AI Sentiment Error** - Gemini AI sentiment analysis failures
+- **AI Response Error** - Invalid AI response parsing
+- **Crypto Data Error** - KuCoin API failures
+- **System Error** - General workflow failures
+
+### **Error Flow**
+1. **Error Detection** - All critical operations wrapped in try-catch
+2. **Telegram Notification** - Detailed error messages sent to Telegram
+3. **Graceful Degradation** - Continue processing other coins if one fails
+4. **Summary Reporting** - Final status report with success/failure counts
+
+## 📊 Data Processing
+
+### **KuCoin Data**
+- **Format**: Simplified KuCoin candle objects (no unnecessary conversion)
+- **Timeframes**: 15m, 1h, 1d
+- **Data Points**: Last 5 candles per timeframe
+- **Rate Limiting**: 100ms delay between requests
+
+### **News Processing**
+- **Source**: TheNewsAPI with intelligent filtering
+- **Categories**: Business and tech news
+- **Filtering**: Crypto-related articles prioritized
+- **Fallback**: Business/finance articles if insufficient crypto news
+
+### **AI Analysis**
+- **Sentiment Model**: gemini-2.5-flash for news sentiment
+- **Trading Model**: gemini-2.5-flash for technical analysis
+- **Temperature**: 0.0 for sentiment, 0.2 for trading analysis
+- **Retry Logic**: 3 attempts with exponential backoff
 
 ## 🤝 Contributing
 

@@ -2,7 +2,7 @@
 
 ## 📋 Project Overview
 
-A **clean, production-ready** Cloudflare Worker that provides automated crypto market analysis and trading recommendations via Telegram using **KuCoin API** as the sole data source.
+A **clean, production-ready** Cloudflare Worker that provides automated crypto market analysis and trading recommendations via Telegram using **KuCoin API** as the sole data source and **Google Gemini AI** for intelligent analysis.
 
 ## 🎯 Key Features
 
@@ -13,15 +13,15 @@ A **clean, production-ready** Cloudflare Worker that provides automated crypto m
 - **Error Handling** - Clear error propagation, no silent failures
 
 ### ✅ **AI-Powered Analysis**
-- **Google Gemini AI** - Advanced market sentiment analysis
-- **Technical Analysis** - Multi-timeframe candlestick analysis
+- **Google Gemini 2.5 Flash** - Advanced market sentiment and trading analysis
+- **Technical Analysis** - Multi-timeframe candlestick analysis (15m, 1h, 1d)
 - **Trading Recommendations** - Spot and leveraged trading advice
 - **Risk Management** - Entry, stop-loss, and take-profit levels
 
 ### ✅ **Automated Workflow**
 - **Scheduled Execution** - Runs every 4 hours via Cloudflare cron
-- **News Integration** - Real-time crypto news sentiment analysis
-- **Telegram Delivery** - Automated trading reports
+- **News Integration** - Real-time crypto news sentiment analysis via TheNewsAPI
+- **Telegram Delivery** - Automated trading reports with error notifications
 - **Manual Triggers** - HTTP endpoints for on-demand analysis
 
 ## 🏗️ Clean Architecture
@@ -106,6 +106,17 @@ LOG_LEVEL=debug              # Logging level
 MAX_ARTICLES=25              # News articles to analyze
 ```
 
+### **Advanced Configuration**
+```bash
+GEMINI_MODEL_SENTIMENT=gemini-2.5-flash  # AI model for sentiment
+GEMINI_MODEL_AGENT=gemini-2.5-flash      # AI model for trading
+ENABLE_CIRCUIT_BREAKER=true              # HTTP circuit breaker
+MAX_CONCURRENT_REQUESTS=3                # Concurrent request limit
+REQUEST_TIMEOUT_MS=30000                 # Request timeout
+ENABLE_CACHE=true                        # Response caching
+CACHE_TTL_SECONDS=300                    # Cache TTL
+```
+
 ## 🚀 Deployment
 
 ### **Development**
@@ -143,21 +154,25 @@ npm run deploy               # Deploy to production
 ### **Error Handling**
 - **No Silent Failures** - All errors are logged and propagated
 - **Clear Error Messages** - Descriptive error information
-- **Graceful Degradation** - System stops cleanly on critical errors
+- **Telegram Notifications** - Real-time error alerts
+- **Graceful Degradation** - System continues with other coins if one fails
 
 ## 🧪 Testing
 
-### **KuCoin API Test**
+### **Health Check**
 ```bash
-npm test
+curl https://crypto-automation.your-subdomain.workers.dev/health
 ```
-Tests all timeframes and multiple cryptocurrencies to ensure API connectivity.
 
-### **Local Worker Test**
+### **Telegram Test**
 ```bash
-npm run test:local
+curl -X POST https://crypto-automation.your-subdomain.workers.dev/test-telegram
 ```
-Tests the complete worker functionality locally.
+
+### **Manual Analysis**
+```bash
+curl -X POST https://crypto-automation.your-subdomain.workers.dev/run
+```
 
 ## 📈 Performance
 
@@ -166,6 +181,7 @@ Tests the complete worker functionality locally.
 - **Efficient Data Processing** - Only keeps last 5 candles per timeframe
 - **Minimal Dependencies** - Lightweight, fast execution
 - **Cloudflare Edge** - Global distribution, low latency
+- **Sequential Processing** - Stays within API rate limits
 
 ### **Resource Usage**
 - **Memory**: ~50MB peak
@@ -183,6 +199,41 @@ Tests the complete worker functionality locally.
 - **No Data Storage** - All data processed in memory
 - **No Logging of Sensitive Data** - API keys and tokens not logged
 - **Secure Communication** - HTTPS for all external API calls
+
+## 🚨 Error Handling
+
+### **Error Types**
+- **News API Error** - TheNewsAPI failures
+- **AI Sentiment Error** - Gemini AI sentiment analysis failures
+- **AI Response Error** - Invalid AI response parsing
+- **Crypto Data Error** - KuCoin API failures
+- **System Error** - General workflow failures
+
+### **Error Flow**
+1. **Error Detection** - All critical operations wrapped in try-catch
+2. **Telegram Notification** - Detailed error messages sent to Telegram
+3. **Graceful Degradation** - Continue processing other coins if one fails
+4. **Summary Reporting** - Final status report with success/failure counts
+
+## 📊 Data Processing
+
+### **KuCoin Data**
+- **Format**: Simplified KuCoin candle objects (no unnecessary conversion)
+- **Timeframes**: 15m, 1h, 1d
+- **Data Points**: Last 5 candles per timeframe
+- **Rate Limiting**: 100ms delay between requests
+
+### **News Processing**
+- **Source**: TheNewsAPI with intelligent filtering
+- **Categories**: Business and tech news
+- **Filtering**: Crypto-related articles prioritized
+- **Fallback**: Business/finance articles if insufficient crypto news
+
+### **AI Analysis**
+- **Sentiment Model**: gemini-2.5-flash for news sentiment
+- **Trading Model**: gemini-2.5-flash for technical analysis
+- **Temperature**: 0.0 for sentiment, 0.2 for trading analysis
+- **Retry Logic**: 3 attempts with exponential backoff
 
 ## 🎯 Benefits
 
