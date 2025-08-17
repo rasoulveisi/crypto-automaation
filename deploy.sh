@@ -25,7 +25,6 @@ fi
 echo "📦 Building project..."
 npm run build
 
-
 # Deploy to Cloudflare Workers
 echo "🚀 Deploying to Cloudflare Workers..."
 wrangler deploy
@@ -33,17 +32,22 @@ wrangler deploy
 echo "✅ Deployment completed successfully!"
 echo ""
 echo "📋 Next steps:"
-echo "1. Set your environment variables:"
+echo "1. Set your required secrets:"
 echo "   wrangler secret put GEMINI_API_KEY"
 echo "   wrangler secret put THENEWSAPI_KEY"
 echo "   wrangler secret put TELEGRAM_BOT_TOKEN"
 echo "   wrangler secret put TELEGRAM_CHAT_ID"
 echo ""
-echo "2. Test the deployment:"
+echo "2. Optional: Override default configuration:"
+echo "   wrangler secret put SYMBOLS"
+echo "   wrangler secret put LOG_LEVEL"
+echo "   wrangler secret put MAX_ARTICLES"
+echo ""
+echo "3. Test the deployment:"
 echo "   curl https://crypto-automation.your-subdomain.workers.dev/health"
 echo ""
-echo "3. Manual run:"
+echo "4. Manual run:"
 echo "   curl -X POST https://crypto-automation.your-subdomain.workers.dev/run"
 echo ""
-echo "4. Monitor logs:"
+echo "5. Monitor logs:"
 echo "   wrangler tail"

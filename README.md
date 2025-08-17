@@ -54,8 +54,20 @@ src/
    npm install
    ```
 
-2. **Set up environment variables**:
+2. **Configure wrangler.toml**:
    ```bash
+   # Copy the example configuration
+   cp wrangler.toml.example wrangler.toml
+   
+   # Edit the configuration if needed
+   # (Optional: customize SYMBOLS, LOG_LEVEL, MAX_ARTICLES)
+   ```
+
+3. **Set up API keys as secrets**:
+   ```bash
+   # Login to Cloudflare
+   wrangler login
+   
    # Set your API keys as secrets
    wrangler secret put GEMINI_API_KEY
    wrangler secret put THENEWSAPI_KEY
@@ -63,7 +75,7 @@ src/
    wrangler secret put TELEGRAM_CHAT_ID
    ```
 
-3. **Configure optional settings**:
+4. **Optional: Configure custom settings**:
    ```bash
    # Optional: Set custom symbols to analyze
    wrangler secret put SYMBOLS
@@ -121,15 +133,22 @@ The worker runs automatically every 4 hours via Cloudflare's cron triggers.
 
 ### Environment Variables
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `GEMINI_API_KEY` | ✅ | - | Google Gemini API key |
-| `THENEWSAPI_KEY` | ✅ | - | TheNewsAPI key |
-| `TELEGRAM_BOT_TOKEN` | ✅ | - | Telegram bot token |
-| `TELEGRAM_CHAT_ID` | ✅ | - | Telegram chat/channel ID |
-| `SYMBOLS` | ❌ | BTC,ETH,SOL,XRP,TRX,XLM,ADA,DOT,BNB | Comma-separated list of crypto symbols |
-| `LOG_LEVEL` | ❌ | info | Logging level (debug, info, warn, error) |
-| `MAX_ARTICLES` | ❌ | 25 | Maximum news articles to analyze |
+The configuration is managed through `wrangler.toml` and Cloudflare secrets:
+
+#### **Required Secrets** (set using `wrangler secret put`)
+| Variable | Description |
+|----------|-------------|
+| `GEMINI_API_KEY` | Google Gemini API key |
+| `THENEWSAPI_KEY` | TheNewsAPI key |
+| `TELEGRAM_BOT_TOKEN` | Telegram bot token |
+| `TELEGRAM_CHAT_ID` | Telegram chat/channel ID |
+
+#### **Optional Configuration** (defaults in wrangler.toml)
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SYMBOLS` | BTC,ETH,SOL,XRP,TRX,XLM,ADA,DOT,BNB | Comma-separated list of crypto symbols |
+| `LOG_LEVEL` | info | Logging level (debug, info, warn, error) |
+| `MAX_ARTICLES` | 25 | Maximum news articles to analyze |
 
 ### Default Symbols
 

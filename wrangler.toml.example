@@ -1,0 +1,20 @@
+name = "crypto-automation"
+main = "src/worker.ts"
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+[triggers]
+crons = ["0 */4 * * *"]  # Run every 4 hours
+
+# Environment variables (secrets)
+[vars]
+# Optional configuration
+SYMBOLS = "BTC,ETH,SOL,XRP,TRX,XLM,ADA,DOT,BNB"
+LOG_LEVEL = "info"
+MAX_ARTICLES = "25"
+
+# Required secrets (set these using wrangler secret put)
+# GEMINI_API_KEY - Google Gemini API key
+# THENEWSAPI_KEY - TheNewsAPI key  
+# TELEGRAM_BOT_TOKEN - Telegram bot token
+# TELEGRAM_CHAT_ID - Telegram chat/channel ID
