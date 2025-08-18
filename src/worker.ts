@@ -6,7 +6,7 @@
 /// <reference types="@cloudflare/workers-types" />
 
 import { createLogger } from './utils/logger';
-import { handleManualRun, handleTestTelegram, handleHealth } from './controllers/api';
+import { handleManualRun, handleTestTelegram, handleHealth, handleTelegramWebhook } from './controllers/api';
 
 interface Env {
   GEMINI_API_KEY: string;
@@ -41,13 +41,19 @@ export default {
       return await handleManualRun(env, logger);
     }
 
+    // Telegram webhook endpoint
+    if (url.pathname === "/telegram-webhook" && request.method === "POST") {
+      return await handleTelegramWebhook(request, env, logger);
+    }
+
     // Default response
     return new Response(JSON.stringify({ 
       message: "Crypto Automation Worker",
       endpoints: {
         health: "GET /health",
         testTelegram: "POST /test-telegram", 
-        manualRun: "POST /run"
+        manualRun: "POST /run",
+        telegramWebhook: "POST /telegram-webhook"
       }
     }), {
       headers: { "content-type": "application/json" },

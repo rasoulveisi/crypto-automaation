@@ -17,7 +17,7 @@ import {
 import { sendTelegram } from '../services/telegram';
 
 // Send error message to Telegram
-async function sendErrorMessage(env: Env, logger: Logger, errorType: string, error: string, details?: any): Promise<void> {
+async function sendErrorMessage(env: Env, logger: Logger, errorType: string, error: string, chatId: string, details?: any): Promise<void> {
   const errorMessage = `🚨 <b>Crypto Analysis Error</b>\n\n` +
     `<b>Error Type:</b> ${errorType}\n` +
     `<b>Error:</b> ${error}\n` +
@@ -25,7 +25,7 @@ async function sendErrorMessage(env: Env, logger: Logger, errorType: string, err
     (details ? `\n<b>Details:</b>\n<code>${JSON.stringify(details, null, 2)}</code>` : '');
   
   try {
-    await sendTelegram(env, logger, errorMessage);
+    await sendTelegram(env, logger, errorMessage, chatId);
     logger.info("Error message sent to Telegram", { errorType, error });
   } catch (telegramError) {
     logger.error("Failed to send error message to Telegram", { 
@@ -40,7 +40,8 @@ export async function analyzeCoin(
   env: Env, 
   logger: Logger, 
   coin: string, 
-  sentiment: SentimentJSON
+  sentiment: SentimentJSON,
+  chatId: string
 ): Promise<void> {
   const symbol = `${coin}${PAIRS_SUFFIX}`;
   logger.info("Fetching candles", { symbol });
@@ -61,10 +62,10 @@ export async function analyzeCoin(
     const content = await geminiCompletionText(env, logger, system, user);
 
     // Ship to Telegram
-    await sendTelegram(env, logger, content);
+    await sendTelegram(env, logger, content, chatId);
   } catch (error) {
     logger.error("Coin analysis failed", { coin, error: String(error) });
-    await sendErrorMessage(env, logger, "Crypto Data Error", `Failed to analyze ${coin}`, {
+    await sendErrorMessage(env, logger, "Crypto Data Error", `Failed to analyze ${coin}`, chatId, {
       coin,
       error: String(error),
       symbol
@@ -74,7 +75,9 @@ export async function analyzeCoin(
 }
 
 // Main analysis workflow
-export async function handleRun(env: Env, logger: Logger): Promise<{ ok: boolean; coins: string[]; error?: string }> {
+export async function handleRun(env: Env, logger: Logger, inputSymbol?: string): Promise<{ ok: boolean; coins: string[]; error?: string }> {
+  const chatId = env.TELEGRAM_CHAT_ID; // Default to TELEGRAM_CHAT_ID for scheduled runs
+
   try {
     // 1) Fetch & filter news
     logger.info("Fetching crypto news");
@@ -83,7 +86,7 @@ export async function handleRun(env: Env, logger: Logger): Promise<{ ok: boolean
       news = await fetchCryptoNews(env, logger);
     } catch (error) {
       logger.error("News fetching failed", { error: String(error) });
-      await sendErrorMessage(env, logger, "News API Error", "Failed to fetch crypto news", {
+      await sendErrorMessage(env, logger, "News API Error", "Failed to fetch crypto news", chatId, {
         error: String(error),
         service: "TheNewsAPI"
       });
@@ -100,7 +103,7 @@ export async function handleRun(env: Env, logger: Logger): Promise<{ ok: boolean
       sentimentRaw = await geminiCompletionJSON(env, logger, sentPrompt.system, sentPrompt.user);
     } catch (error) {
       logger.error("Sentiment analysis failed", { error: String(error) });
-      await sendErrorMessage(env, logger, "AI Sentiment Error", "Failed to analyze news sentiment", {
+      await sendErrorMessage(env, logger, "AI Sentiment Error", "Failed to analyze news sentiment", chatId, {
         error: String(error),
         service: "Google Gemini AI",
         articleCount: news.length
@@ -113,7 +116,7 @@ export async function handleRun(env: Env, logger: Logger): Promise<{ ok: boolean
       sentiment = JSON.parse(sentimentRaw) as SentimentJSON;
     } catch (e) {
       logger.error("Sentiment parse failed", { raw: sentimentRaw, error: String(e) });
-      await sendErrorMessage(env, logger, "AI Response Error", "Failed to parse sentiment analysis", {
+      await sendErrorMessage(env, logger, "AI Response Error", "Failed to parse sentiment analysis", chatId, {
         error: String(e),
         rawResponse: sentimentRaw.substring(0, 200) + "...",
         service: "Google Gemini AI"
@@ -122,7 +125,7 @@ export async function handleRun(env: Env, logger: Logger): Promise<{ ok: boolean
     }
 
     // 3) For each coin: fetch candles and run AI agent
-    const coins = buildSymbolList(env);
+    const coins = inputSymbol ? [inputSymbol] : buildSymbolList(env);
     logger.info("Analyzing coins", { coins });
 
     const successfulCoins: string[] = [];
@@ -131,7 +134,7 @@ export async function handleRun(env: Env, logger: Logger): Promise<{ ok: boolean
     // Sequential per coin to stay within rate limits & stay predictable
     for (const coin of coins) {
       try {
-        await analyzeCoin(env, logger, coin, sentiment);
+        await analyzeCoin(env, logger, coin, sentiment, chatId);
         successfulCoins.push(coin);
         await sleep(600); // stagger model calls a bit
       } catch (err) {
@@ -150,7 +153,7 @@ export async function handleRun(env: Env, logger: Logger): Promise<{ ok: boolean
         `<b>Failed:</b> ${failedCoins.length}\n` +
         `<b>Time:</b> ${new Date().toISOString()}`;
       
-      await sendTelegram(env, logger, summaryMessage);
+      await sendTelegram(env, logger, summaryMessage, chatId);
     }
 
     if (failedCoins.length > 0) {
@@ -164,7 +167,7 @@ export async function handleRun(env: Env, logger: Logger): Promise<{ ok: boolean
     return { ok: true, coins: successfulCoins };
   } catch (error) {
     logger.error("Main analysis workflow failed", { error: String(error) });
-    await sendErrorMessage(env, logger, "System Error", "Crypto analysis workflow failed", {
+    await sendErrorMessage(env, logger, "System Error", "Crypto analysis workflow failed", chatId, {
       error: String(error),
       timestamp: new Date().toISOString()
     });

@@ -8,9 +8,8 @@ import { fetchWithRetryEnhanced, sleep } from '../utils/http';
 import { chunkForTelegram } from '../utils/helpers';
 
 // Send message to Telegram
-export async function sendTelegram(env: Env, logger: Logger, html: string): Promise<void> {
+export async function sendTelegram(env: Env, logger: Logger, html: string, chatId: string): Promise<void> {
   const token = env.TELEGRAM_BOT_TOKEN;
-  const chatId = env.TELEGRAM_CHAT_ID;
 
   logger.info("Sending Telegram message", { 
     tokenLength: token.length, 
